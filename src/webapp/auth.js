@@ -14,6 +14,7 @@
   const successPanel = document.getElementById('success-panel');
   const returnCurrent = document.getElementById('return-current');
   const returnGroup = document.getElementById('return-group');
+  const emailDomain = document.getElementById('email-domain');
   const lntuDomain = '@lntu.edu.ua';
   let state = new URLSearchParams(location.search).get('state') || '';
   const fragmentData = new URLSearchParams(location.hash.slice(1)).get('tgWebAppData') || '';
@@ -65,17 +66,16 @@
     tg.close();
   });
 
-  const normalizeUsername = () => {
-    let username = email.value.trim();
-    if (username.toLowerCase().endsWith(lntuDomain)) {
-      username = username.slice(0, -lntuDomain.length);
-      email.value = username;
-    }
-    email.setCustomValidity(username.includes('@') ? 'Введіть лише частину адреси до @lntu.edu.ua.' : '');
-    return username;
+  const normalizeEmail = () => {
+    const entered = email.value.trim();
+    emailDomain.hidden = entered.includes('@');
+    const address = entered.includes('@') ? entered : entered + lntuDomain;
+    email.setCustomValidity(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address) ? '' : 'Введіть повну адресу електронної пошти WebDk.');
+    return address;
   };
 
-  email.addEventListener('input', normalizeUsername);
+  email.addEventListener('input', normalizeEmail);
+  normalizeEmail();
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -85,7 +85,7 @@
       status.textContent = 'Telegram не передав дані авторизації. Відкрийте Mini App через кнопку в боті.';
       return;
     }
-    const username = normalizeUsername();
+    const address = normalizeEmail();
     if (!form.reportValidity()) return;
     submit.disabled = true;
     submit.textContent = 'Перевіряємо…';
@@ -95,7 +95,7 @@
       const response = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state, initData, email: username + lntuDomain, password: password.value, rememberMe: rememberMe.checked }),
+        body: JSON.stringify({ state, initData, email: address, password: password.value, rememberMe: rememberMe.checked }),
         signal: controller.signal,
         credentials: 'same-origin'
       });

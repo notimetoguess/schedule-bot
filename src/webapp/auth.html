@@ -18,11 +18,12 @@
         <p class="intro">Дані потрібні один раз, щоб отримати токен доступу до вашого розкладу.</p>
       </div>
       <form id="auth-form" novalidate>
-        <label for="email">Електронна адреса ЛНТУ</label>
+        <label for="email">Логін WebDk (електронна адреса)</label>
         <div class="email-row">
-          <input id="email" name="email" type="text" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="johny.daltony.023" aria-describedby="email-domain">
+          <input id="email" name="email" type="text" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="Повна адреса або ім’я до @lntu.edu.ua" aria-describedby="email-hint">
           <span id="email-domain" class="email-domain">@lntu.edu.ua</span>
         </div>
+        <p id="email-hint" class="field-hint">Використайте ту саму адресу, з якою входите до WebDk.</p>
         <label for="password">Пароль</label>
         <div class="password-row">
           <input id="password" name="password" type="password" autocomplete="current-password" required placeholder="Ваш пароль">

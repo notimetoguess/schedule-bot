@@ -18,6 +18,8 @@ input:focus { border-color: var(--tg-theme-button-color, #2aabee); box-shadow: 0
 .email-row input { flex: 1 1 auto; min-width: 0; border: 0; border-radius: 13px 0 0 13px; padding-right: 3px; background: transparent; box-shadow: none; }
 .email-row input:focus { border-color: transparent; box-shadow: none; }
 .email-domain { flex: 0 0 auto; padding: 0 14px 0 3px; color: var(--tg-theme-hint-color, #66727f); white-space: nowrap; }
+.email-domain[hidden] { display: none; }
+.field-hint { margin: -3px 0 2px; color: var(--tg-theme-hint-color, #66727f); font-size: 12px; }
 .password-row { position: relative; }
 .password-row input { padding-right: 90px; }
 .reveal { position: absolute; inset: 7px 7px 7px auto; border: 0; border-radius: 9px; padding: 0 10px; color: var(--tg-theme-link-color, #168acd); background: transparent; font-weight: 650; }
