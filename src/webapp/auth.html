@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>Авторизуватись</title>
+  <link rel="stylesheet" href="/auth.css">
+  <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+  <script src="/auth.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <section class="card" aria-labelledby="title">
+      <div id="auth-intro">
+        <p class="eyebrow">Розклад ЛНТУ</p>
+        <h1 id="title">Увійдіть в особистий кабінет</h1>
+        <p class="intro">Дані потрібні один раз, щоб отримати токен доступу до вашого розкладу.</p>
+      </div>
+      <form id="auth-form" novalidate>
+        <label for="email">Електронна адреса ЛНТУ</label>
+        <div class="email-row">
+          <input id="email" name="email" type="text" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="johny.daltony.023" aria-describedby="email-domain">
+          <span id="email-domain" class="email-domain">@lntu.edu.ua</span>
+        </div>
+        <label for="password">Пароль</label>
+        <div class="password-row">
+          <input id="password" name="password" type="password" autocomplete="current-password" required placeholder="Ваш пароль">
+          <button id="toggle-password" class="reveal" type="button" aria-label="Показати пароль">Показати</button>
+        </div>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+         <label class="remember"><input id="remember-me" type="checkbox"> Запам'ятати мене (14 днів)</label>
+        <button id="submit" class="primary" type="submit">Авторизуватися</button>
+      </form>
+      <section id="success-panel" class="success-panel" hidden aria-labelledby="success-title">
+        <div class="success-icon" aria-hidden="true">✓</div>
+        <h2 id="success-title">Авторизація успішна</h2>
+        <p>Поверніться до inline-режиму та введіть show all для загального розкладу або show me для своїх предметів.</p>
+        <button id="return-current" class="primary" type="button">Чат боту</button>
+        <button id="return-group" class="secondary" type="button">Повернутись до групи</button>
+      </section>
+      <div id="privacy" class="privacy">
+        <span aria-hidden="true">🔒</span>
+        <p>За замовчуванням пароль не зберігається. Якщо ви оберете «Запам'ятати мене», він зберігатиметься зашифрованим до 7 днів для автоматичного входу.</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

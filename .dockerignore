@@ -1,0 +1,19 @@
+# Allowlist the build context so credentials, dumps and workstation dependencies
+# never reach the builder, including secrets in otherwise untracked files.
+**
+!Dockerfile
+!package.json
+!package-lock.json
+!tsconfig.json
+!scripts/
+!scripts/copy-webapp-assets.mjs
+!src/
+!src/**
+!test/
+!test/**
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/node_modules
+**/*.log
