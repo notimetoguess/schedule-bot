@@ -80,6 +80,9 @@ export async function authenticate(
     });
   } catch (error) {
     options.challenges.release(body.state);
+    if (error instanceof WebDkError) {
+      console.warn("Authorization upstream rejected login", { kind: error.kind, status: error.status });
+    }
     if (error instanceof WebDkError && error.kind === "credentials") {
       json(response, 401, { code: "INVALID_CREDENTIALS" });
       return;

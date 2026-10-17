@@ -39,8 +39,13 @@ export class WebDkClient {
     const payload = await readJson(response);
 
     if (!response.ok) {
-      const description = getString(payload, "error_description") || getString(payload, "message") || "Authorization failed";
+      const description = getString(payload, "error_description") || getString(payload, "errorDetails") ||
+        getString(payload, "message") || getString(payload, "errorMessage") || "Authorization failed";
       if (response.status === 400 && /version/i.test(description)) throw new WebDkError("version", description, response.status);
+      // WebDk currently returns HTTP 500 for an incorrect login/password.
+      if (/не\s*вірний\s+логін\s+або\s+пароль/iu.test(description)) {
+        throw new WebDkError("credentials", "Incorrect login or password", response.status);
+      }
       if (response.status === 400 || response.status === 401) throw new WebDkError("credentials", description, response.status);
       throw new WebDkError("server", description, response.status);
     }

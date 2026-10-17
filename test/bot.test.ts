@@ -421,6 +421,10 @@ test("schedule inline results use the supplied calendar thumbnails", async () =>
       const filename = result.id.startsWith("all:today:") ? "today-calendar.png" : "weekly-calendar.png";
       assert.equal(result.thumbnail_url, "https://auth.example.com/assets/inline/" + filename);
       assert.equal(result.type, "article");
+      if (result.id.startsWith("academic-week-ended:")) {
+        assert.equal(result.description, "Поточний навчальний тиждень завершено. Оберіть розклад на наступний тиждень.");
+        continue;
+      }
       assert.equal(result.description, "Оберіть, щоб надіслати меню розкладу.");
       assert.equal(typeof result.input_message_content.message_text, "string");
       assert.match(JSON.stringify(result), /Показати розклад/);

@@ -63,6 +63,19 @@ test("login classifies bad credentials and version rejection", async () => {
 
   const version = new WebDkClient("old", (async () => jsonResponse({ error_description: "Missing or invalid version parameter" }, 400)) as typeof fetch);
   await assert.rejects(version.login("x@y.ua", "bad"), (error: unknown) => error instanceof WebDkError && error.kind === "version");
+
+  const currentWebDk = new WebDkClient("2.18", (async () => jsonResponse({
+    errorMessage: "Виникла невідома помилка, зверніться до адміністратора системи",
+    errorDetails: "Помилка при авторизації: Не вірний логін або пароль",
+  }, 500)) as typeof fetch);
+  await assert.rejects(currentWebDk.login("x@y.ua", "bad"), (error: unknown) =>
+    error instanceof WebDkError && error.kind === "credentials" && error.status === 500);
+
+  const genuineOutage = new WebDkClient("2.18", (async () => jsonResponse({
+    errorMessage: "Database unavailable",
+  }, 500)) as typeof fetch);
+  await assert.rejects(genuineOutage.login("x@y.ua", "bad"), (error: unknown) =>
+    error instanceof WebDkError && error.kind === "server");
 });
 
 test("schedule detects expiry and malformed lessons", async () => {
