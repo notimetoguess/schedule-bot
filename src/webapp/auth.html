@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
-  <title>Авторизуватись</title>
+  <title>Вхід — Розклад ЛНТУ</title>
   <link rel="stylesheet" href="/auth.css">
   <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
   <script src="/auth.js" defer></script>
@@ -12,38 +12,133 @@
 <body>
   <main class="shell">
     <section class="card" aria-labelledby="title">
-      <div id="auth-intro">
+      <header id="auth-intro" class="intro-block">
         <p class="eyebrow">Розклад ЛНТУ</p>
-        <h1 id="title">Увійдіть в особистий кабінет</h1>
-        <p class="intro">Дані потрібні один раз, щоб отримати токен доступу до вашого розкладу.</p>
-      </div>
-      <form id="auth-form" novalidate>
-        <label for="email">Авторизуватись</label>
-        <div class="email-row">
-          <input id="email" name="email" type="text" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="Ваша пошта:" aria-describedby="email-hint">
-          <span id="email-domain" class="email-domain">@lntu.edu.ua</span>
+        <h1 id="title">З поверненням!</h1>
+        <p class="intro">Увійдіть у кабінет студента для доступу до вашого розкладу.</p>
+      </header>
+
+      <form id="auth-form" method="post" novalidate>
+        <div class="field">
+          <label for="email">Електронна пошта</label>
+          <div class="input-pill email-row">
+            <span class="input-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="5" width="18" height="14" rx="2.5"></rect>
+                <path d="m4 7 8 6 8-6"></path>
+              </svg>
+            </span>
+            <input
+              id="email"
+              name="email"
+              type="text"
+              inputmode="email"
+              autocomplete="username"
+              autocorrect="off"
+              autocapitalize="none"
+              spellcheck="false"
+              enterkeyhint="next"
+              required
+              placeholder="Логін або пошта"
+              aria-describedby="email-hint"
+              data-error="email-error"
+            >
+            <span id="email-domain" class="email-domain">@lntu.edu.ua</span>
+          </div>
+          <p id="email-error" class="field-error">
+            <span class="error-icon" role="img" aria-label="Помилка">!</span>
+            <span class="error-text">Введіть логін або пошту від кабінету студента.</span>
+          </p>
         </div>
-        <p id="email-hint" class="field-hint">Використайте ту саму адресу, з якою входите до WebDk.</p>
-        <label for="password">Пароль</label>
-        <div class="password-row">
-          <input id="password" name="password" type="password" autocomplete="current-password" required placeholder="Ваш пароль">
-          <button id="toggle-password" class="reveal" type="button" aria-label="Показати пароль">Показати</button>
+
+        <div class="field">
+          <label for="password">Пароль</label>
+          <div class="input-pill password-row">
+            <span class="input-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="11" width="16" height="9" rx="2.5"></rect>
+                <path d="M8 11V7.5a4 4 0 0 1 8 0V11"></path>
+                <circle cx="12" cy="15.5" r="1"></circle>
+              </svg>
+            </span>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              enterkeyhint="done"
+              required
+              placeholder="Введіть пароль"
+              data-error="password-error"
+            >
+            <button
+              id="toggle-password"
+              class="reveal"
+              type="button"
+              aria-pressed="false"
+              aria-controls="password"
+              aria-label="Показати пароль"
+            >
+              <svg class="icon-eye" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12s3.8-6.5 10-6.5S22 12 22 12s-3.8 6.5-10 6.5S2 12 2 12Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <svg class="icon-eye-off" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 3l18 18"></path>
+                <path d="M10.6 5.7A10.7 10.7 0 0 1 12 5.5c6.2 0 10 6.5 10 6.5a17.2 17.2 0 0 1-4.1 4.8"></path>
+                <path d="M6.4 6.6A17.2 17.2 0 0 0 2 12s3.8 6.5 10 6.5c1.5 0 2.9-.3 4.2-.9"></path>
+                <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path>
+              </svg>
+            </button>
+          </div>
+          <p id="password-error" class="field-error">
+            <span class="error-icon" role="img" aria-label="Помилка">!</span>
+            <span class="error-text">Введіть пароль від облікового запису.</span>
+          </p>
         </div>
+
+        <div class="remember-row">
+          <label class="remember" for="remember-me">
+            <span class="checkbox-wrap">
+              <input id="remember-me" name="rememberMe" type="checkbox" class="checkbox-input">
+              <span class="checkbox-check" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
+            </span>
+            <span class="remember-label">Запам’ятати на 14 днів</span>
+          </label>
+        </div>
+
         <p id="status" class="status" role="status" aria-live="polite"></p>
-         <label class="remember"><input id="remember-me" type="checkbox"> Запам'ятати мене (14 днів)</label>
-        <button id="submit" class="primary" type="submit">Авторизуватися</button>
+
+        <button id="submit" class="primary" type="submit">Увійти</button>
       </form>
+
       <section id="success-panel" class="success-panel" hidden aria-labelledby="success-title">
-        <div class="success-icon" aria-hidden="true">✓</div>
-        <h2 id="success-title">Авторизація успішна</h2>
-        <p>Поверніться до inline-режиму та введіть show all для загального розкладу або show me для своїх предметів.</p>
-        <button id="return-current" class="primary" type="button">Чат боту</button>
-        <button id="return-group" class="secondary" type="button">Повернутись до групи</button>
+        <div class="success-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <h2 id="success-title">Вхід виконано!</h2>
+        <p>Тепер ви можете переглядати розклад. У чаті введіть <code>show all</code> для загального розкладу або <code>show me</code> для ваших предметів.</p>
+        <div class="success-actions">
+          <button id="return-current" class="primary" type="button">Відкрити розклад</button>
+          <button id="return-group" class="secondary" type="button">Закрити</button>
+        </div>
       </section>
-      <div id="privacy" class="privacy">
-        <span aria-hidden="true">🔒</span>
-        <p>За замовчуванням пароль не зберігається. Якщо ви оберете «Запам'ятати мене», він зберігатиметься зашифрованим до 14 днів для автоматичного входу.</p>
-      </div>
+
+      <footer id="privacy" class="privacy">
+        <span class="privacy-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3 5 6v6c0 4.6 3 8.4 7 9.5 4-1.1 7-4.9 7-9.5V6l-7-3Z"></path>
+            <path d="m9.5 12 1.8 1.8L15 10"></path>
+          </svg>
+        </span>
+        <p>Пароль використовується лише для входу й не зберігається. Якщо обрати «Запам’ятати на 14 днів», дані зберігаються у зашифрованому вигляді.</p>
+      </footer>
     </section>
   </main>
 </body>

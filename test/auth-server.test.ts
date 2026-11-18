@@ -87,8 +87,11 @@ test("auth server serves protected assets and stores only the resulting token", 
     assert.equal(page.status, 200);
     assert.match(page.headers.get("content-type") ?? "", /^text\/html/);
     const pageBody = await page.text();
+    assert.match(pageBody, /<meta name="color-scheme" content="light dark">/);
     assert.match(pageBody, /autocomplete="current-password"/);
-    assert.doesNotMatch(pageBody, /id="remember-me"[^>]*disabled/);
+    assert.match(pageBody, /data-error="email-error"/);
+    assert.match(pageBody, /data-error="password-error"/);
+    assert.match(pageBody, /aria-pressed="false"/);
     assert.match(page.headers.get("content-security-policy") ?? "", /telegram\.org/);
 
     const stylesheet = await fetch(baseUrl + "/auth.css");
