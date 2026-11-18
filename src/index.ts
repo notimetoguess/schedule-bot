@@ -20,7 +20,7 @@ import { MongoAnnouncementStore } from "./announcements/announcement-store.js";
 import type { NotificationSender } from "./notifications/types.js";
 
 const config = loadConfig();
-const webDk = new WebDkClient(config.apiVersion);
+const webDk = new WebDkClient(config.apiVersion, fetch, 15_000, config.webDkBaseUrl);
 const mongoClient = new MongoClient(config.mongoUri, {
   serverSelectionTimeoutMS: 30000, connectTimeoutMS: 10000,
 });

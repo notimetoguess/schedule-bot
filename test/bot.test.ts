@@ -510,18 +510,23 @@ test("unauthorized inline show uses the versioned authorization thumbnail", asyn
 for (const inline of [false, true]) {
   for (const scenario of [
     { name: "explicit 401", status: 401, body: { message: "Authorization has been denied for this request." }, rejected: true },
+    { name: "invalid_token 401", status: 401, body: { error: "invalid_token", error_description: "Token expired" }, rejected: true },
     { name: "expiry code", status: 400, body: { errorCode: 20700 }, rejected: true },
     { name: "ambiguous 401", status: 401, body: { message: "private-upstream-message", errorCode: 999 }, rejected: false },
     { name: "server error", status: 500, body: { message: "private-upstream-message" }, rejected: false },
+    { name: "html 405", status: 405, contentType: "text/html", body: null, rejected: false },
     { name: "non-JSON 401", status: 401, body: null, rejected: false },
     { name: "network failure", status: 0, body: null, rejected: false },
   ]) {
     test(scenario.name + " authorization handling: " + (inline ? "inline" : "chat"), async (t) => {
       const logs: unknown[][] = [];
       t.mock.method(console, "warn", (...args: unknown[]) => { logs.push(args); });
-      const client = new WebDkClient("2.18", (async () => {
+      const client = new WebDkClient("3.00", (async () => {
         if (!scenario.status) throw new Error("private-upstream-message");
-        return new Response(scenario.body ? JSON.stringify(scenario.body) : "private-upstream-message", { status: scenario.status });
+        return new Response(
+          scenario.body ? JSON.stringify(scenario.body) : "<html>private-upstream-message</html>",
+          { status: scenario.status, headers: scenario.contentType ? { "Content-Type": scenario.contentType } : undefined },
+        );
       }) as typeof fetch);
       const fixture = setup({ getSchedule: client.getSchedule.bind(client) });
       t.after(fixture.close);
@@ -535,8 +540,14 @@ for (const inline of [false, true]) {
       assert.equal(logs.length, 1);
       const metadata = logs[0]![1] as Record<string, unknown>;
       assert.equal(metadata.status, scenario.status || null);
+      assert.equal(metadata.endpoint, "schedule/get");
+      if (scenario.contentType) assert.equal(metadata.contentType, scenario.contentType);
       assert.equal(metadata.upstreamCode, scenario.body?.errorCode ?? null);
       assert.equal(metadata.classification === "unauthorized", scenario.rejected);
+      if (scenario.status === 405) {
+        assert.equal(metadata.classification, "server");
+        assert.match(JSON.stringify(fixture.calls), /Сервіс ЛНТУ тимчасово недоступний/);
+      }
       assert(Number(metadata.remainingLocalLifetimeSeconds) > 604790);
       assert.doesNotMatch(JSON.stringify(logs), /secret-access-token|private-upstream-message/);
       if (!scenario.rejected) assert.doesNotMatch(JSON.stringify(fixture.calls), /Авторизуйтеся|web_app/);

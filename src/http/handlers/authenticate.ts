@@ -43,6 +43,7 @@ export async function authenticate(
     return;
   }
 
+  let stage = "session_lookup";
   try {
     await loginCoordinator.run(userId, async () => {
       // Recheck after entering the per-user queue. Another request may have
@@ -50,6 +51,14 @@ export async function authenticate(
       if (await options.authStore.get(userId)) {
         options.challenges.consume(body.state);
         json(response, 200, { ok: true });
+        return;
+      }
+
+      // Optional persistence must be checked before minting an upstream token.
+      // Stale forms may still submit this option after deployment configuration changes.
+      if (body.rememberMe && !options.credentialCrypto) {
+        options.challenges.release(body.state);
+        json(response, 409, { code: "REMEMBER_ME_UNAVAILABLE" });
         return;
       }
 
@@ -63,12 +72,9 @@ export async function authenticate(
         return;
       }
 
+      stage = "webdk_login";
       const result = await options.webDk.login(body.email, body.password);
-      if (body.rememberMe && !options.credentialCrypto) {
-        options.challenges.release(body.state);
-        json(response, 503, { code: "AUTH_UNAVAILABLE" });
-        return;
-      }
+      stage = "session_save";
       await options.authStore.set(userId, {
         accessToken: result.accessToken,
         expiresAt: Date.now() + (body.rememberMe ? rememberMeMaxAgeSeconds : Math.min(result.expiresIn, options.authSessionMaxAgeSeconds)) * 1000,
@@ -80,9 +86,14 @@ export async function authenticate(
     });
   } catch (error) {
     options.challenges.release(body.state);
-    if (error instanceof WebDkError) {
-      console.warn("Authorization upstream rejected login", { kind: error.kind, status: error.status });
-    }
+    // Raw errors can include credentials, tokens, response bodies or database URIs.
+    console.warn("Authorization failed", {
+      stage,
+      kind: error instanceof WebDkError ? error.kind : error instanceof AuthStoreUnavailableError ? "storage" : "internal",
+      ...(error instanceof WebDkError
+        ? { endpoint: error.endpoint ?? null, status: error.status ?? null, contentType: error.contentType ?? null }
+        : {}),
+    });
     if (error instanceof WebDkError && error.kind === "credentials") {
       json(response, 401, { code: "INVALID_CREDENTIALS" });
       return;

@@ -62,10 +62,16 @@ export async function fetchAndReply(
       await showLogin(ctx, dependencies, "Сесія ЛНТУ завершилася. Авторизуйтеся знову:");
       return;
     }
-    await showMenu(ctx, dependencies, error instanceof WebDkError && error.kind === "malformed"
-      ? "Сервіс ЛНТУ повернув дані в невідомому форматі. Спробуйте пізніше."
-      : "Не вдалося завантажити розклад. Перевірте з’єднання та спробуйте ще раз.");
+    await showMenu(ctx, dependencies, scheduleFailureMessage(error));
   }
+}
+
+export function scheduleFailureMessage(error: unknown, fallback = "Не вдалося завантажити розклад. Перевірте з’єднання та спробуйте ще раз."): string {
+  if (error instanceof WebDkError) {
+    if (error.kind === "malformed") return "Сервіс ЛНТУ повернув дані в невідомому форматі. Спробуйте пізніше.";
+    if (error.kind === "server" || error.kind === "version") return "Сервіс ЛНТУ тимчасово недоступний. Спробуйте пізніше.";
+  }
+  return fallback;
 }
 
 export function rateLimitMessage(decision: RateLimitDecision): string {

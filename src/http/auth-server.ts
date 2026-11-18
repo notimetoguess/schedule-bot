@@ -45,7 +45,11 @@ export function createAuthServer(options: AuthServerOptions): Server {
         return asset(response, "image/jpeg", image);
       }
       if (request.method === "GET" && url.pathname === "/auth") {
-        return asset(response, "text/html; charset=utf-8", await readWebappAsset("auth.html"));
+        let page = await readWebappAsset("auth.html");
+        if (!options.credentialCrypto) {
+          page = page.replace('id="remember-me"', 'id="remember-me" disabled title="Запам’ятовування входу не налаштовано. Звичайна авторизація доступна."');
+        }
+        return asset(response, "text/html; charset=utf-8", page);
       }
       if (request.method === "GET" && url.pathname === "/auth.css") {
         return asset(response, "text/css; charset=utf-8", await readWebappAsset("auth.css"));

@@ -10,6 +10,7 @@ import { createAuthServer } from "../src/http/auth-server.js";
 import { SlidingWindowRateLimiter } from "../src/shared/rate-limiter.js";
 import type { LoginResult } from "../src/types.js";
 import { WebDkClient, WebDkError } from "../src/integrations/webdk.js";
+import { loadConfig } from "../src/config.js";
 
 const botToken = "999:test-token";
 const publicUrl = "https://auth.example.com";
@@ -33,6 +34,7 @@ async function withServer(
   run: (baseUrl: string, stores: { auth: AuthStore; challenges: AuthChallengeStore }) => Promise<void>,
   auth: AuthStore = new MemoryAuthStore(),
   checkReady?: () => Promise<boolean>,
+  crypto: CredentialCrypto | null = credentialCrypto,
 ) {
   const challenges = new AuthChallengeStore();
   const server = createAuthServer({
@@ -45,7 +47,7 @@ async function withServer(
     challenges,
     requestLimiter: new SlidingWindowRateLimiter(2, 30_000),
     webDk: { login } as WebDkClient,
-    credentialCrypto,
+    credentialCrypto: crypto ?? undefined,
   });
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
@@ -84,7 +86,9 @@ test("auth server serves protected assets and stores only the resulting token", 
     const page = await fetch(baseUrl + "/auth");
     assert.equal(page.status, 200);
     assert.match(page.headers.get("content-type") ?? "", /^text\/html/);
-    assert.match(await page.text(), /autocomplete="current-password"/);
+    const pageBody = await page.text();
+    assert.match(pageBody, /autocomplete="current-password"/);
+    assert.doesNotMatch(pageBody, /id="remember-me"[^>]*disabled/);
     assert.match(page.headers.get("content-security-policy") ?? "", /telegram\.org/);
 
     const stylesheet = await fetch(baseUrl + "/auth.css");
@@ -204,6 +208,66 @@ test("remember-me sessions last 14 days when the initial WebDk token expires soo
     assert(await stores.auth.get("89", session.expiresAt - 1));
     assert.equal(await stores.auth.get("89", session.expiresAt), undefined);
   });
+});
+
+test("missing remember-me encryption does not prevent ordinary login", async () => {
+  let loginCalls = 0;
+  await withServer(async () => {
+    loginCalls++;
+    return { accessToken: "ordinary-access", tokenType: "bearer", expiresIn: 3600 };
+  }, async (baseUrl, stores) => {
+    const state = stores.challenges.issue("90");
+    const body = { state, initData: "", email: "student@example.com", password: "secret" };
+    const unavailable = await post(baseUrl, { ...body, rememberMe: true });
+    assert.equal(unavailable.status, 409);
+    assert.deepEqual(await unavailable.json(), { code: "REMEMBER_ME_UNAVAILABLE" });
+    assert.equal(loginCalls, 0, "unavailable optional feature must not mint an upstream token");
+    assert.equal(await stores.auth.get("90"), undefined);
+
+    const page = await (await fetch(baseUrl + "/auth")).text();
+    assert.match(page, /id="remember-me"[^>]*disabled/);
+
+    const response = await post(baseUrl, { ...body, rememberMe: false });
+    assert.equal(response.status, 200);
+    assert.equal(loginCalls, 1);
+    const session = await stores.auth.get("90");
+    assert.equal(session?.accessToken, "ordinary-access");
+    assert.equal(session?.rememberedCredentials, undefined);
+    assert(session!.expiresAt <= Date.now() + 3_600_000);
+  }, new MemoryAuthStore(), undefined, null);
+});
+
+test("legacy deployment config completes remember-me login and saves decryptable credentials", async () => {
+  const config = loadConfig({
+    BOT_TOKEN: botToken,
+    AUTH_WEBAPP_URL: publicUrl,
+    MONGODB_URI: "mongodb://localhost:27017",
+    AUTH_SESSION_ENCRYPTION_KEY: Buffer.alloc(32, 3).toString("base64"),
+  });
+  assert(config.credentialsEncryptionKey);
+  const crypto = new CredentialCrypto(config.credentialsEncryptionKey);
+  const webDk = new WebDkClient(config.apiVersion, (async (_url, init) => {
+    assert.equal(String(_url), "https://web-dk.lntu.edu.ua/api/student/auth/login");
+    const body = JSON.parse(String(init!.body)) as { login: string; password: string; version: string };
+    assert.equal(body.login, "student@example.com");
+    assert.equal(body.password, "p& ss+");
+    assert.equal(body.version, "3.00");
+    return new Response(JSON.stringify({ access_token: "valid-access", token_type: "bearer", expires_in: 1209599 }));
+  }) as typeof fetch, 15_000, config.webDkBaseUrl);
+  await withServer(webDk.login.bind(webDk), async (baseUrl, stores) => {
+    const response = await post(baseUrl, {
+      state: stores.challenges.issue("91"), initData: "",
+      email: "student@example.com", password: "p& ss+", rememberMe: true,
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { ok: true });
+    const session = await stores.auth.get("91");
+    assert.equal(session?.accessToken, "valid-access");
+    assert(session?.rememberedCredentials);
+    assert.deepEqual(crypto.decrypt("91", session.rememberedCredentials), {
+      email: "student@example.com", password: "p& ss+",
+    });
+  }, new MemoryAuthStore(), undefined, crypto);
 });
 
 test("an active session makes authentication idempotent", async () => {

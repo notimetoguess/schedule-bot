@@ -22,6 +22,7 @@
   const messages = {
     INVALID_CREDENTIALS: 'Неправильна електронна адреса або пароль.',
     AUTH_UNAVAILABLE: 'Сервіс авторизації тимчасово недоступний. Спробуйте пізніше.',
+    REMEMBER_ME_UNAVAILABLE: 'Запам’ятовування входу не налаштовано. Введіть пароль і натисніть «Авторизуватися» для звичайного входу.',
     INVALID_SESSION: 'Посилання застаріло. Поверніться до Telegram і відкрийте авторизацію ще раз.',
     RATE_LIMITED: 'Забагато спроб. Спробуйте трохи пізніше.',
     UPSTREAM_UNAVAILABLE: 'Сервіс ЛНТУ тимчасово недоступний. Спробуйте пізніше.'
@@ -95,13 +96,17 @@
       const response = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state, initData, email: address, password: password.value, rememberMe: rememberMe.checked }),
+        body: JSON.stringify({ state, initData, email: address, password: password.value, rememberMe: !rememberMe.disabled && rememberMe.checked }),
         signal: controller.signal,
         credentials: 'same-origin'
       });
       const data = await response.json().catch(() => ({}));
       password.value = '';
       if (!response.ok) {
+        if (data.code === 'REMEMBER_ME_UNAVAILABLE') {
+          rememberMe.checked = false;
+          rememberMe.disabled = true;
+        }
         const retry = data.retryAfterSeconds ? ' Через ' + data.retryAfterSeconds + ' с.' : '';
         status.textContent = (messages[data.code] || 'Не вдалося авторизуватися.') + retry;
         return;
