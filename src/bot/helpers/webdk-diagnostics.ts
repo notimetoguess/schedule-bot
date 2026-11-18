@@ -8,7 +8,9 @@ export function logScheduleFailure(error: unknown, userId: string, expiresAt: nu
     : "WebDk schedule request failed; authorization retained", {
     userId,
     expiresAt,
+    endpoint: error.endpoint ?? null,
     status: error.status ?? null,
+    contentType: error.contentType ?? null,
     upstreamCode: error.upstreamCode ?? null,
     classification: error.kind,
     remainingLocalLifetimeSeconds: Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000)),

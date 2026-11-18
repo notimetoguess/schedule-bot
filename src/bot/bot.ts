@@ -20,7 +20,7 @@ import { registerTextHandler } from "./handlers/text.handler.js";
 import { registerAdminActions } from "./actions/admin.actions.js";
 import { registerAdminMessageHandler } from "./handlers/admin-message.handler.js";
 import { logScheduleFailure } from "./helpers/webdk-diagnostics.js";
-import { rateLimitMessage } from "./helpers/replies.js";
+import { rateLimitMessage, scheduleFailureMessage } from "./helpers/replies.js";
 import { clearTransient } from "./helpers/session.js";
 import { createSessionMiddleware, createSessionStore, privateChatMiddleware } from "./middlewares/session.middleware.js";
 import type { BotContext, BotDependencies } from "./types.js";
@@ -108,7 +108,7 @@ function registerInlineScheduleMenuActions(bot: Telegraf<BotContext>, webDk: Web
       }
       await ctx.editMessageText(error instanceof AuthStoreUnavailableError
         ? "Сервіс авторизації тимчасово недоступний. Спробуйте пізніше."
-        : "Не вдалося завантажити розклад. Спробуйте ще раз пізніше.");
+        : scheduleFailureMessage(error, "Не вдалося завантажити розклад. Спробуйте ще раз пізніше."));
     }
   });
 
@@ -137,7 +137,9 @@ function registerInlineScheduleMenuActions(bot: Telegraf<BotContext>, webDk: Web
         await ctx.editMessageText("Сесія ЛНТУ завершилася. Введіть @" + ctx.botInfo.username + " login, щоб авторизуватися знову.");
         return;
       }
-      await ctx.editMessageText("Не вдалося сформувати розклад. Спробуйте ще раз пізніше.");
+      await ctx.editMessageText(error instanceof AuthStoreUnavailableError
+        ? "Сервіс авторизації тимчасово недоступний. Спробуйте пізніше."
+        : scheduleFailureMessage(error, "Не вдалося сформувати розклад. Спробуйте ще раз пізніше."));
     }
   });
 }
