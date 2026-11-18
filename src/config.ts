@@ -1,8 +1,10 @@
 import "dotenv/config";
+import { normalizeWebDkBaseUrl } from "./integrations/webdk.js";
 
 export interface Config {
   botToken: string;
   apiVersion: string;
+  webDkBaseUrl: string;
   authWebAppUrl: string;
   authHost: string;
   authPort: number;
@@ -33,17 +35,22 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (!mongoUri) throw new Error("MONGODB_URI is required");
   if (!/^mongodb(?:\+srv)?:\/\//.test(mongoUri)) throw new Error("MONGODB_URI must use mongodb:// or mongodb+srv://");
   const mongoDatabase = env.MONGODB_DATABASE?.trim() || "schedule_bot";
-  const encodedKey = env.AUTH_CREDENTIALS_ENCRYPTION_KEY?.trim();
-  const adminEmails = new Set((env.ADMIN_EMAILS ?? "").split(",").map((value) => value.trim().toLowerCase()).filter(Boolean));
+  // Existing deployments used this key for file-backed sessions before MongoDB.
+  // Keep their remember-me logins working without silently losing the configured key.
+  const credentialsKeyName = env.AUTH_CREDENTIALS_ENCRYPTION_KEY?.trim()
+    ? "AUTH_CREDENTIALS_ENCRYPTION_KEY" : "AUTH_SESSION_ENCRYPTION_KEY";
+  const encodedKey = env[credentialsKeyName]?.trim();
+  const adminEmails = parseAdminEmails(env.ADMIN_EMAILS);
   let credentialsEncryptionKey: Buffer | undefined;
   if (encodedKey) {
-    try { credentialsEncryptionKey = Buffer.from(encodedKey, "base64"); } catch { throw new Error("AUTH_CREDENTIALS_ENCRYPTION_KEY must be base64"); }
-    if (credentialsEncryptionKey.length !== 32) throw new Error("AUTH_CREDENTIALS_ENCRYPTION_KEY must decode to 32 bytes");
+    try { credentialsEncryptionKey = Buffer.from(encodedKey, "base64"); } catch { throw new Error(credentialsKeyName + " must be base64"); }
+    if (credentialsEncryptionKey.length !== 32) throw new Error(credentialsKeyName + " must decode to 32 bytes");
   }
 
   return {
     botToken,
-    apiVersion: env.WEBDK_API_VERSION?.trim() || "2.18",
+    apiVersion: env.WEBDK_API_VERSION?.trim() || "3.00",
+    webDkBaseUrl: normalizeWebDkBaseUrl(env.BASE_URL),
     authWebAppUrl,
     authHost: env.AUTH_HOST?.trim() || (platformPort ? "0.0.0.0" : "127.0.0.1"),
     authPort,
@@ -54,6 +61,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     credentialsEncryptionKey,
     adminEmails,
   };
+}
+
+function parseAdminEmails(value: string | undefined): ReadonlySet<string> {
+  if (!value?.trim()) return new Set();
+  const message = "ADMIN_EMAILS must be a JSON array of email addresses";
+  let emails: unknown;
+  try { emails = JSON.parse(value); } catch { throw new Error(message); }
+  if (!Array.isArray(emails) || !emails.every((email): email is string =>
+    typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))) {
+    throw new Error(message);
+  }
+  return new Set(emails.map((email) => email.trim().toLowerCase()));
 }
 
 function positiveInteger(value: string | undefined, fallback: number, name: string, maximum = Math.floor(Number.MAX_SAFE_INTEGER / 1000)): number {

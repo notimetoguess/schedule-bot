@@ -41,7 +41,7 @@ Add an optional `authenticatedEmail` field to `AuthSession` and `AuthDocument`. 
 Add `ADMIN_EMAILS` to configuration and `.env.example`, with deployment configured as:
 
 ```dotenv
-ADMIN_EMAILS=shyyan.d0806.122.24@lntu.edu.ua
+ADMIN_EMAILS='["shyyan.d0806.122.24@lntu.edu.ua"]'
 ```
 
 Parse a normalized email allowlist; an absent or empty setting enables no administrators. Compute access from the active stored identity and the current allowlist rather than accepting an admin flag from the client or caching permanent rights in the conversation.

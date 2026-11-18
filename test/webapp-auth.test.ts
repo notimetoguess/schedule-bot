@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { runInNewContext } from "node:vm";
 
-test("Mini App sends a full WebDk email unchanged and expands LNTU shorthand", async () => {
+function loadForm(responseCode = "INVALID_CREDENTIALS") {
   const handlers = new Map<string, Map<string, (event?: { preventDefault(): void }) => Promise<void> | void>>();
   const elements = new Map<string, {
     value: string; checked: boolean; hidden: boolean; disabled: boolean; type: string;
@@ -21,7 +21,7 @@ test("Mini App sends a full WebDk email unchanged and expands LNTU shorthand", a
     });
     handlers.set(id, new Map());
   }
-  const requests: Array<{ email: string }> = [];
+  const requests: Array<{ email: string; password: string; rememberMe: boolean }> = [];
   runInNewContext(readFileSync(new URL("../src/webapp/auth.js", import.meta.url), "utf8"), {
     window: { Telegram: { WebApp: { ready() {}, expand() {}, initData: "", switchInlineQuery() {}, close() {} } } },
     document: { getElementById: (id: string) => elements.get(id) },
@@ -29,10 +29,14 @@ test("Mini App sends a full WebDk email unchanged and expands LNTU shorthand", a
     URLSearchParams, AbortController, setTimeout, clearTimeout,
     fetch: async (_url: string, init: { body: string }) => {
       requests.push(JSON.parse(init.body));
-      return { ok: false, json: async () => ({ code: "INVALID_CREDENTIALS" }) };
+      return { ok: false, json: async () => ({ code: responseCode }) };
     },
   });
+  return { elements, handlers, requests };
+}
 
+test("Mini App sends a full WebDk email unchanged and expands LNTU shorthand", async () => {
+  const { elements, handlers, requests } = loadForm();
   const email = elements.get("email")!;
   const password = elements.get("password")!;
   const formSubmit = handlers.get("auth-form")!.get("submit")!;
@@ -47,4 +51,26 @@ test("Mini App sends a full WebDk email unchanged and expands LNTU shorthand", a
   await formSubmit({ preventDefault() {} });
   assert.equal(requests.at(-1)?.email, "student@lntu.edu.ua");
   assert.equal(elements.get("email-domain")?.hidden, false);
+});
+
+test("a stale Mini App recovers from unavailable remember-me without reporting an outage", async () => {
+  const { elements, handlers, requests } = loadForm("REMEMBER_ME_UNAVAILABLE");
+  elements.get("email")!.value = "student";
+  elements.get("password")!.value = "secret";
+  const remember = elements.get("remember-me")!;
+  remember.checked = true;
+  const submit = handlers.get("auth-form")!.get("submit")!;
+  await submit({ preventDefault() {} });
+
+  assert.equal(requests[0]?.rememberMe, true);
+  assert.equal(remember.checked, false);
+  assert.equal(remember.disabled, true);
+  assert.match(elements.get("status")!.textContent, /Введіть пароль/);
+  assert.doesNotMatch(elements.get("status")!.textContent, /тимчасово/);
+  assert.equal(elements.get("password")!.value, "");
+  assert.equal(elements.get("submit")!.disabled, false);
+
+  elements.get("password")!.value = "secret";
+  await submit({ preventDefault() {} });
+  assert.equal(requests[1]?.rememberMe, false);
 });
