@@ -511,8 +511,9 @@ for (const inline of [false, true]) {
   for (const scenario of [
     { name: "explicit 401", status: 401, body: { message: "Authorization has been denied for this request." }, rejected: true },
     { name: "invalid_token 401", status: 401, body: { error: "invalid_token", error_description: "Token expired" }, rejected: true },
+    { name: "problem+json 401", status: 401, contentType: "application/problem+json; charset=utf-8", body: { type: "session_expired", title: "Unauthorized", detail: "private-upstream-message" }, rejected: true },
+    { name: "other JSON 401", status: 401, body: { message: "private-upstream-message", errorCode: 999 }, rejected: true },
     { name: "expiry code", status: 400, body: { errorCode: 20700 }, rejected: true },
-    { name: "ambiguous 401", status: 401, body: { message: "private-upstream-message", errorCode: 999 }, rejected: false },
     { name: "server error", status: 500, body: { message: "private-upstream-message" }, rejected: false },
     { name: "html 405", status: 405, contentType: "text/html", body: null, rejected: false },
     { name: "non-JSON 401", status: 401, body: null, rejected: false },
@@ -543,6 +544,7 @@ for (const inline of [false, true]) {
       assert.equal(metadata.endpoint, "schedule/get");
       if (scenario.contentType) assert.equal(metadata.contentType, scenario.contentType);
       assert.equal(metadata.upstreamCode, scenario.body?.errorCode ?? null);
+      assert.equal(metadata.upstreamType, (scenario.body as { type?: string } | null | undefined)?.type ?? null);
       assert.equal(metadata.classification === "unauthorized", scenario.rejected);
       if (scenario.status === 405) {
         assert.equal(metadata.classification, "server");

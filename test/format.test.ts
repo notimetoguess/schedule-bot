@@ -38,6 +38,30 @@ test("time-only WebDk values keep their clock time without historical Kyiv offse
   assert(!message?.includes("08:32"));
 });
 
+test("WebDk v3 space-separated timestamps format as HH:mm and sort lessons by time", () => {
+  const [message] = formatSchedule([
+    {
+      scheduleDate: "2026-11-19 00:00:00",
+      studyTimeName: "3-тя пара",
+      studyTimeBegin: "1900-01-01 10:50:00",
+      studyTimeEnd: "1900-01-01 11:50:00",
+      disciplineName: "Пізніша пара",
+    },
+    {
+      scheduleDate: "2026-11-19 00:00:00",
+      studyTimeName: "2-га пара",
+      studyTimeBegin: "1900-01-01 09:40:00",
+      studyTimeEnd: "1900-01-01 10:40:00",
+      disciplineName: "Раніша пара",
+    },
+  ]);
+  assert(message?.includes("четвер, 19.11.2026"));
+  assert(message?.includes("2-га пара · 09:40–10:40"));
+  assert(message?.includes("3-тя пара · 10:50–11:50"));
+  assert(!message?.includes("1900-01-01"));
+  assert(message!.indexOf("Раніша пара") < message!.indexOf("Пізніша пара"));
+});
+
 test("group label is not duplicated and department is omitted", () => {
   const [message] = formatSchedule([{ ...base, contingentName: "Група КН-31", chairName: "Кафедра комп’ютерних наук" }]);
   assert(message?.includes("Група: КН-31"));

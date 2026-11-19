@@ -18,6 +18,28 @@ test("schedule renderer creates Telegram-compatible JPEG pages with teacher avat
   assert((await sharp(pages[0]).metadata()).height! > 250);
 });
 
+test("schedule renderer requests and embeds teacher photo for v3 parenthesized title format", async () => {
+  const png1x1 = await sharp({ create: { width: 10, height: 10, channels: 3, background: "#2d6cc0" } }).jpeg().toBuffer();
+  const requested: Array<string | undefined> = [];
+  const renderer = new ScheduleImageRenderer({
+    async find(name) {
+      requested.push(name);
+      return name === "Бойко Л. С. (Доцент)" ? png1x1 : undefined;
+    },
+  });
+  const pages = await renderer.render([{
+    scheduleDate: "2026-11-19 00:00:00",
+    studyTimeName: "2-га пара",
+    studyTimeBegin: "1900-01-01 09:40:00",
+    studyTimeEnd: "1900-01-01 10:40:00",
+    disciplineName: "Крос-платформенне програмування",
+    empFullName: "Бойко Л. С. (Доцент)",
+  }], "Мій розклад");
+  assert.deepEqual(requested, ["Бойко Л. С. (Доцент)"]);
+  assert.equal(pages.length, 1);
+  assert.equal(pages[0]!.subarray(0, 2).toString("hex"), "ffd8");
+});
+
 test("image bundles are owner-bound and expire", () => {
   const store = new ScheduleImageStore(1);
   const id = store.put("42", [Buffer.from("jpeg")]);

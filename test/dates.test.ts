@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { DateTime } from "luxon";
-import { currentAcademicWeekRange, KYIV_ZONE, nextAcademicWeekRange, todayRange, toApiDateRange } from "../src/schedule/dates.js";
+import { currentAcademicWeekRange, extractClock, KYIV_ZONE, nextAcademicWeekRange, todayRange, toApiDateRange, webDkDateKey } from "../src/schedule/dates.js";
 
 test("today range uses the current Kyiv date for both boundaries", () => {
   const instant = DateTime.fromISO("2026-09-07T22:30:00Z");
@@ -45,4 +45,14 @@ test("API range uses inclusive Kyiv boundaries and daylight-saving offsets", () 
     dateFrom: "2026-10-24T00:00:00.000+03:00",
     dateTo: "2026-10-26T23:59:59.999+02:00",
   });
+});
+
+test("extractClock and webDkDateKey handle ISO and SQL-style WebDk v3 timestamps", () => {
+  assert.equal(extractClock("1900-01-01 09:40:00"), "09:40");
+  assert.equal(extractClock("1900-01-01 9:40:00"), "09:40");
+  assert.equal(extractClock("2026-09-08T09:00:00+03:00"), "09:00");
+  assert.equal(extractClock("08:30"), "08:30");
+  assert.equal(extractClock("25:00"), null);
+  assert.equal(webDkDateKey("2026-11-19 00:00:00"), "2026-11-19");
+  assert.equal(webDkDateKey("2026-09-07T22:00:00Z"), "2026-09-08");
 });

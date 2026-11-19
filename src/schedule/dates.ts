@@ -34,3 +34,17 @@ export function isIsoDate(value: string): boolean {
   const parsed = DateTime.fromISO(value, { zone: KYIV_ZONE });
   return /^\d{4}-\d{2}-\d{2}$/.test(value) && parsed.isValid && parsed.toISODate() === value;
 }
+
+/** Extracts "HH:mm" from "HH:mm", "…THH:mm…", or "yyyy-MM-dd HH:mm:ss". */
+export function extractClock(value: string): string | null {
+  const match = value.match(/(?:^|[T\s])([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?/);
+  return match ? `${match[1]!.padStart(2, "0")}:${match[2]}` : null;
+}
+
+/** Kyiv calendar date (yyyy-MM-dd) for ISO or SQL-style WebDk dates. */
+export function webDkDateKey(value: string): string {
+  const iso = DateTime.fromISO(value, { setZone: true });
+  if (iso.isValid) return iso.setZone(KYIV_ZONE).toISODate()!;
+  const sql = DateTime.fromSQL(value, { zone: KYIV_ZONE });
+  return sql.isValid ? sql.toISODate()! : value.slice(0, 10);
+}

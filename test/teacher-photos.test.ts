@@ -18,7 +18,15 @@ function directory(names: string[]) {
 
 test("teacher photos distinguish shared surnames using initials and ignore titles", async () => {
   const { photos } = directory(["Бойко Ольга Вікторівна", "Бойко Лев Степанович"]);
-  for (const name of ["Бойко Л. С. Доцент", "Бойко Л.С.", "Бойко Л. С.", "Бойко Л С", "Бойко Лев Степанович Професор"]) {
+  for (const name of [
+    "Бойко Л. С. Доцент",
+    "Бойко Л. С. (Доцент)",
+    "Бойко Л.С. (Старший викладач)",
+    "Бойко Л.С.",
+    "Бойко Л. С.",
+    "Бойко Л С",
+    "Бойко Лев Степанович Професор",
+  ]) {
     assert.equal((await photos.find(name))?.toString(), "https://rating2.lntu.edu.ua/1.jpg");
   }
   assert.equal((await photos.find("Бойко О.В. Доцент"))?.toString(), "https://rating2.lntu.edu.ua/0.jpg");
@@ -26,7 +34,7 @@ test("teacher photos distinguish shared surnames using initials and ignore title
 
 test("ambiguous or conflicting names never fall back to the first surname photo", async () => {
   const { photos, imageRequests } = directory(["Бойко Лев Степанович", "Бойко Леонід Сергійович"]);
-  for (const name of ["Бойко", "Бойко Л. С. Доцент", "Бойко О. В.", "Бойко Любомир Степанович"]) {
+  for (const name of ["Бойко", "Бойко Л. С. Доцент", "Бойко Л. С. (Доцент)", "Бойко О. В.", "Бойко Любомир Степанович"]) {
     assert.equal(await photos.find(name), undefined);
   }
   assert.deepEqual(imageRequests, []);

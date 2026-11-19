@@ -21,6 +21,8 @@ export class WebDkError extends Error {
     public readonly upstreamCode?: number,
     public readonly endpoint?: string,
     public readonly contentType?: string | null,
+    /** RFC 7807 `type`/`title` – generic identifiers, safe to log. */
+    public readonly upstreamType?: string,
   ) {
     super(message);
     this.name = "WebDkError";
@@ -165,26 +167,26 @@ function throwWebDkResponseError(
   fallback: string,
 ): never {
   const code = getNumber(payload, "errorCode");
-  const error = getString(payload, "error");
   const message = getString(payload, "message");
-  // Match the explicit rejection signals used by WebDk's clients (v3 invalid_token and legacy 20700/denied).
-  if (
-    code === 20700 ||
-    (response.status === 401 && (error === "invalid_token" || message === "Authorization has been denied for this request."))
-  ) {
-    throw new WebDkError("unauthorized", "Session expired", response.status, code, endpoint, contentType);
-  }
+  const problemType = getString(payload, "type") ?? getString(payload, "title");
   const detail = getString(payload, "detail") || message || getString(payload, "error_description") || fallback;
-  throw new WebDkError("server", detail, response.status, code, endpoint, contentType);
+  if (problemType === "versionMistmatch") {
+    throw new WebDkError("version", detail, response.status, code, endpoint, contentType, problemType);
+  }
+  // These endpoints are only ever called with a Bearer token, so any 401 means the
+  // token was rejected: legacy 20700/"denied", v3 `invalid_token`, or v3
+  // `application/problem+json` 401s for server-side expired/revoked tokens.
+  if (code === 20700 || response.status === 401) {
+    throw new WebDkError("unauthorized", "Session expired", response.status, code, endpoint, contentType, problemType);
+  }
+  throw new WebDkError("server", detail, response.status, code, endpoint, contentType, problemType);
 }
 
 async function readPayload(response: Response, endpoint: string): Promise<unknown> {
   const contentType = response.headers.get("content-type");
   const text = await response.text();
   if (!text.trim()) {
-    if (!response.ok) {
-      throw new WebDkError("server", `Upstream HTTP ${response.status} empty response`, response.status, undefined, endpoint, contentType);
-    }
+    if (!response.ok) return undefined;
     throw new WebDkError("malformed", "Response body is empty", response.status, undefined, endpoint, contentType);
   }
   try {

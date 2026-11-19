@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { KYIV_ZONE } from "./dates.js";
+import { KYIV_ZONE, extractClock, webDkDateKey as dateKey } from "./dates.js";
 import type { ScheduleLesson } from "../types.js";
 
 const MAX_MESSAGE_LENGTH = 3900;
@@ -40,11 +40,6 @@ function formatLesson(lesson: ScheduleLesson): string {
   return lines.join("\n");
 }
 
-function dateKey(value: string): string {
-  const parsed = DateTime.fromISO(value, { setZone: true });
-  return parsed.isValid ? parsed.setZone(KYIV_ZONE).toISODate()! : value.slice(0, 10);
-}
-
 function formatTime(value: string): string {
   const clock = extractClock(value);
   if (clock) return clock;
@@ -57,10 +52,6 @@ function timeInMinutes(value: string): number {
   if (!clock) return Number.MAX_SAFE_INTEGER;
   const [hour, minute] = clock.split(":").map(Number);
   return hour! * 60 + minute!;
-}
-
-function extractClock(value: string): string | null {
-  return value.match(/(?:T|^)([01]\d|2[0-3]):([0-5]\d)/)?.slice(1, 3).join(":") || null;
 }
 
 function splitBlocks(blocks: string[]): string[] {

@@ -111,7 +111,7 @@ test("login classifies bad credentials and version rejection", async () => {
     error instanceof WebDkError && error.kind === "server");
 });
 
-test("schedule detects expiry (invalid_token and 20700) and malformed lessons", async () => {
+test("schedule detects expiry (invalid_token, problem+json 401, empty 401, and 20700) and malformed lessons", async () => {
   const expiredLegacy = new WebDkClient("3.00", (async () => jsonResponse({ errorCode: 20700 }, 400)) as typeof fetch);
   await assert.rejects(expiredLegacy.getSchedule("x", "from", "to"), (error: unknown) => error instanceof WebDkError && error.kind === "unauthorized");
 
@@ -120,6 +120,47 @@ test("schedule detects expiry (invalid_token and 20700) and malformed lessons", 
     error_description: "This request requires a valid JWT access token to be provided",
   }, 401)) as typeof fetch);
   await assert.rejects(expiredJwt.getSchedule("x", "from", "to"), (error: unknown) => error instanceof WebDkError && error.kind === "unauthorized");
+
+  const problem401 = new WebDkClient("3.00", (async () => new Response(JSON.stringify({
+    type: "https://httpstatuses.io/401",
+    title: "Unauthorized",
+    status: 401,
+    detail: "Token expired",
+  }), { status: 401, headers: { "Content-Type": "application/problem+json; charset=utf-8" } })) as typeof fetch);
+  await assert.rejects(problem401.getSchedule("x", "from", "to"), (error: unknown) =>
+    error instanceof WebDkError &&
+    error.kind === "unauthorized" &&
+    error.status === 401 &&
+    error.upstreamType === "https://httpstatuses.io/401");
+
+  const empty401 = new WebDkClient("3.00", (async () => new Response("", { status: 401 })) as typeof fetch);
+  await assert.rejects(empty401.getSchedule("x", "from", "to"), (error: unknown) =>
+    error instanceof WebDkError && error.kind === "unauthorized" && error.status === 401);
+
+  const versionMismatch401 = new WebDkClient("2.18", (async () => new Response(JSON.stringify({
+    type: "versionMistmatch",
+    status: 401,
+    detail: "Version mismatch",
+  }), { status: 401, headers: { "Content-Type": "application/problem+json; charset=utf-8" } })) as typeof fetch);
+  await assert.rejects(versionMismatch401.getSchedule("x", "from", "to"), (error: unknown) =>
+    error instanceof WebDkError && error.kind === "version" && error.status === 401 && error.upstreamType === "versionMistmatch");
+
+  const problem500 = new WebDkClient("3.00", (async () => new Response(JSON.stringify({
+    type: "internal_error",
+    title: "Internal Server Error",
+    status: 500,
+  }), { status: 500, headers: { "Content-Type": "application/problem+json; charset=utf-8" } })) as typeof fetch);
+  await assert.rejects(problem500.getSchedule("x", "from", "to"), (error: unknown) =>
+    error instanceof WebDkError && error.kind === "server" && error.status === 500 && error.upstreamType === "internal_error");
+
+  const subjects401 = new WebDkClient("3.00", (async () => new Response(JSON.stringify({
+    title: "Unauthorized",
+    status: 401,
+  }), { status: 401, headers: { "Content-Type": "application/problem+json; charset=utf-8" } })) as typeof fetch);
+  await assert.rejects(subjects401.getStudentSubjects("x"), (error: unknown) =>
+    error instanceof WebDkError && error.kind === "unauthorized" && error.upstreamType === "Unauthorized");
+  await assert.rejects(subjects401.getStudentProfile("x"), (error: unknown) =>
+    error instanceof WebDkError && error.kind === "unauthorized" && error.upstreamType === "Unauthorized");
 
   const malformed = new WebDkClient("3.00", (async () => jsonResponse([{ disciplineName: "Missing dates" }])) as typeof fetch);
   await assert.rejects(malformed.getSchedule("x", "from", "to"), (error: unknown) => error instanceof WebDkError && error.kind === "malformed");

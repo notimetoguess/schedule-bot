@@ -67,11 +67,12 @@ export class TeacherPhotos {
 }
 
 function normalize(value: string): string {
-  return value.toLowerCase().replace(/[.'’]/g, "").replace(/\s+/g, " ").trim();
+  return value.toLowerCase().replace(/[.'’]/g, "").replace(/[(),]/g, " ").replace(/\s+/g, " ").trim();
 }
 
 function nameParts(value: string): string[] {
   return normalize(value
+    .replace(/(?:\s*\([^)]*\))+\s*$/u, "")
     .replace(/\s+(Доцент|Професор|Асистент|Викладач)(?=\s|$|[.,]).*$/iu, "")
     .replace(/\./g, " ")).split(" ");
 }

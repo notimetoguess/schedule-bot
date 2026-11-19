@@ -1,5 +1,4 @@
-import { DateTime } from "luxon";
-import { KYIV_ZONE } from "../../schedule/dates.js";
+import { webDkDateKey } from "../../schedule/dates.js";
 
 interface InlineRecipient {
   id: number;
@@ -25,8 +24,7 @@ export function messageInlineResult(id: string, title: string, message: string, 
 }
 
 export function scheduleDate(value: string): string {
-  const date = DateTime.fromISO(value, { setZone: true });
-  return date.isValid ? date.setZone(KYIV_ZONE).toISODate()! : value.slice(0, 10);
+  return webDkDateKey(value);
 }
 
 function addressToUser(message: string, user: InlineRecipient) {

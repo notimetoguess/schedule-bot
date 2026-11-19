@@ -12,6 +12,7 @@ export function logScheduleFailure(error: unknown, userId: string, expiresAt: nu
     status: error.status ?? null,
     contentType: error.contentType ?? null,
     upstreamCode: error.upstreamCode ?? null,
+    upstreamType: error.upstreamType ?? null,
     classification: error.kind,
     remainingLocalLifetimeSeconds: Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000)),
   });
